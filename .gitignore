@@ -1,0 +1,4 @@
+node_modules/
+test/challenge_test.js
+test/generated/
+gpt.md
