@@ -1,6 +1,6 @@
 # Familiar Strangers
 
-In the realm of the familiar, where logic gates are the silent sentinels of truth, lies a challenge shrouded in enigma. "Familiar Strangers" beckons you to a world where the simplest of circuits hide secrets just beyond the veil of obviousness. These circuits, reminiscent of the ones you've met countless times, now hold a mystery that only a true Circom savant can unravel. Three levels, each a step deeper into the cryptic dance of numbers and logic, await your prowess. Are you ready to discover the true inputs and reveal the concealed answers within? Find the key, communicate with our judge service, and claim your place among the elite who see beyond the familiar to the truth that lies beneath.
+In the realm of the familiar, where logic gates are the silent sentinels of truth, lies a challenge shrouded in enigma. "Familiar Strangers" beckons you to a world where the simplest of circuits hide secrets just beyond the veil of obviousness. These circuits, reminiscent of the ones you've met countless times, now hold a mystery that only a true Circom savant can unravel. Two levels, each a step deeper into the cryptic dance of numbers and logic, await your prowess. Are you ready to discover the true inputs and reveal the concealed answers within? Find the key, communicate with our judge service, and claim your place among the elite who see beyond the familiar to the truth that lies beneath.
 
 ## How to play?
 
@@ -22,10 +22,10 @@ node stranger_judge.js
 Example request with curl:
 
 ```shell
-curl -X POST http://localhost:3000/judge -H "Content-Type: application/json" -d '{"l1": "123", "l2": ["1", "2", "3"], "l3": "123"}'
+curl -X POST http://localhost:3000/judge -H "Content-Type: application/json" -d '{"l1": "123", "l2": "123"}'
 ```
 
-The `l1`, `l2` and `l3` are the three levels of this challenge. The level 2 has three rounds, so the `l2` is an array of three strings.
+The `l1` and `l2` are the two levels of this challenge.
 
 The service will return `{"success":true}` when the input is correct, otherwise it will return `{"success":false}`.
 
@@ -55,16 +55,6 @@ template Level1() {
 }
 
 template Level2() {
-    signal input in;
-    signal output out;
-    out <== 1;
-    component gt = GreaterThan(221);
-    gt.in[0] <== 3213876088517980551083924184683275942994577159616708198006784;
-    gt.in[1] <== in;
-    gt.out === out;
-}
-
-template Level3() {
     signal input in;
     signal output out;
     out <== 1;
@@ -107,23 +97,9 @@ async function runCircuit(circuitPath, input) {
     }
 }
 
-async function runCircuitMustFail(circuitPath, input) {
-    const circuit = await wasm_tester(circuitPath, {
-        output: path.join(__dirname, "./test/generated"),
-        // recompile: true,
-    });
-    try {
-        const witness = await circuit.calculateWitness({ in: input });
-        await circuit.checkConstraints(witness);
-        return FAIL;
-    } catch (error) {
-        return error.toString();
-    }
-}
-
-// Example inputs {"l1": "123", "l2": ["1", "2", "3"], "l3": "123"}
+// Example inputs {"l1": "123", "l2": "123"}
 // Test with curl
-// curl -X POST http://localhost:3000/judge -H "Content-Type: application/json" -d '{"l1": "123", "l2": ["1", "2", "3"], "l3": "123"}'
+// curl -X POST http://localhost:3000/judge -H "Content-Type: application/json" -d '{"l1": "123", "l2": "123"}'
 
 app.post('/judge', async (req, res) => {
     // random number for logging
@@ -140,33 +116,12 @@ app.post('/judge', async (req, res) => {
         return;
     }
 
-    // Level 2 - Round 1
-    result = await runCircuit(path.join(__dirname, "test/level2_test.circom"), inputs.l2[0]);
-    if (result != PASS) {
+    // Level 2
+    if (inputs.l2.length <= 70) {
         res.json({ success: false });
         return;
     }
-
-    // Level 2 - Round 2
-    result = await runCircuitMustFail(path.join(__dirname, "test/level2_test.circom"), inputs.l2[1]);
-    if ((result.includes("Assert Failed") && !result.includes("Bit")) === false) {
-        res.json({ success: false });
-        return;
-    }
-
-    // Level 2 - Round 3
-    result = await runCircuitMustFail(path.join(__dirname, "test/level2_test.circom"), inputs.l2[2]);
-    if ((result.includes("Assert Failed") && result.includes("Bit")) === false) {
-        res.json({ success: false });
-        return;
-    }
-
-    // Level 3
-    if (inputs.l3.length <= 68) {
-        res.json({ success: false });
-        return;
-    }
-    result = await runCircuit(path.join(__dirname, "test/level3_test.circom"), inputs.l3);
+    result = await runCircuit(path.join(__dirname, "test/level2_test.circom"), inputs.l2);
     if (result != PASS) {
         res.json({ success: false });
         return;

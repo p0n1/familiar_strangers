@@ -20,16 +20,6 @@ template Level2() {
     signal input in;
     signal output out;
     out <== 1;
-    component gt = GreaterThan(221);
-    gt.in[0] <== 3213876088517980551083924184683275942994577159616708198006784;
-    gt.in[1] <== in;
-    gt.out === out;
-}
-
-template Level3() {
-    signal input in;
-    signal output out;
-    out <== 1;
     component lt = GreaterThan(241);
     lt.in[0] <== 3533700027045102098369050084895387317199177651876580346993442643999981568;
     lt.in[1] <== in;
