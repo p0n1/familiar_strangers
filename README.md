@@ -35,4 +35,150 @@ We include the below files in README for your convenience. You should always rea
 
 The [challenge.circom](circuits/challenge.circom) is the circuits for this challenge.
 
+```js
+pragma circom 2.1.7;
+
+include "../node_modules/circomlib/circuits/comparators.circom";
+
+template Level1() {
+    signal input in;
+    signal output out;
+    out <== 1;
+    component lt = LessThan(201);
+    lt.in[0] <== in;
+    lt.in[1] <== 6026017665971213533282357846279359759458261226685473132380160;
+    lt.out === out;
+    component gt = GreaterThan(201);
+    gt.in[0] <== in;
+    gt.in[1] <== -401734511064747568885490523085290650630550748445698208825344;
+    gt.out === out;
+}
+
+template Level2() {
+    signal input in;
+    signal output out;
+    out <== 1;
+    component gt = GreaterThan(221);
+    gt.in[0] <== 3213876088517980551083924184683275942994577159616708198006784;
+    gt.in[1] <== in;
+    gt.out === out;
+}
+
+template Level3() {
+    signal input in;
+    signal output out;
+    out <== 1;
+    component lt = GreaterThan(241);
+    lt.in[0] <== 3533700027045102098369050084895387317199177651876580346993442643999981568;
+    lt.in[1] <== in;
+    lt.out === out;
+    component gt = LessThan(251);
+    gt.in[0] <== -3618502782768642773547390826438087570129142810943142283802299270005870559232;
+    gt.in[1] <== in;
+    gt.out === out;
+}
+```
+
 The [stranger_judge.js](stranger_judge.js) is the code for the judge service.
+
+```js
+const express = require('express');
+const bodyParser = require('body-parser');
+const { wasm: wasm_tester } = require('circom_tester');
+const path = require('path');
+
+const app = express();
+app.use(bodyParser.json());
+
+const PASS = "pass";
+const FAIL = "fail";
+
+async function runCircuit(circuitPath, input) {
+    const circuit = await wasm_tester(circuitPath, {
+        output: path.join(__dirname, "./test/generated"),
+        // recompile: true,
+    });
+    try {
+        const witness = await circuit.calculateWitness({ in: input });
+        await circuit.checkConstraints(witness);
+        return PASS;
+    } catch (error) {
+        return error.toString();
+    }
+}
+
+async function runCircuitMustFail(circuitPath, input) {
+    const circuit = await wasm_tester(circuitPath, {
+        output: path.join(__dirname, "./test/generated"),
+        // recompile: true,
+    });
+    try {
+        const witness = await circuit.calculateWitness({ in: input });
+        await circuit.checkConstraints(witness);
+        return FAIL;
+    } catch (error) {
+        return error.toString();
+    }
+}
+
+// Example inputs {"l1": "123", "l2": ["1", "2", "3"], "l3": "123"}
+// Test with curl
+// curl -X POST http://localhost:3000/judge -H "Content-Type: application/json" -d '{"l1": "123", "l2": ["1", "2", "3"], "l3": "123"}'
+
+app.post('/judge', async (req, res) => {
+    // random number for logging
+    const identifier = Math.floor(Math.random() * 100000000000);
+    const inputs = req.body;
+    console.log("identifier", identifier, "inputs", inputs);
+
+    let result = FAIL;
+
+    // Level 1
+    result = await runCircuit(path.join(__dirname, "test/level1_test.circom"), inputs.l1);
+    if (result != PASS) {
+        res.json({ success: false });
+        return;
+    }
+
+    // Level 2 - Round 1
+    result = await runCircuit(path.join(__dirname, "test/level2_test.circom"), inputs.l2[0]);
+    if (result != PASS) {
+        res.json({ success: false });
+        return;
+    }
+
+    // Level 2 - Round 2
+    result = await runCircuitMustFail(path.join(__dirname, "test/level2_test.circom"), inputs.l2[1]);
+    if ((result.includes("Assert Failed") && !result.includes("Bit")) === false) {
+        res.json({ success: false });
+        return;
+    }
+
+    // Level 2 - Round 3
+    result = await runCircuitMustFail(path.join(__dirname, "test/level2_test.circom"), inputs.l2[2]);
+    if ((result.includes("Assert Failed") && result.includes("Bit")) === false) {
+        res.json({ success: false });
+        return;
+    }
+
+    // Level 3
+    if (inputs.l3.length <= 68) {
+        res.json({ success: false });
+        return;
+    }
+    result = await runCircuit(path.join(__dirname, "test/level3_test.circom"), inputs.l3);
+    if (result != PASS) {
+        res.json({ success: false });
+        return;
+    }
+
+    res.json({ success: true });
+    console.log("identifier", identifier, "success");
+    return;
+});
+
+const port = 3000;
+app.listen(port, () => {
+    console.log(`Stranger Judge Service running on port ${port}`);
+});
+```
