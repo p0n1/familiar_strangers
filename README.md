@@ -1,5 +1,7 @@
 # Familiar Strangers
 
+> This puzzle was prepared for this [zkCTF](https://twitter.com/scalebit_/status/1754822591217647817). Just make this repo public for reference and updates. Check over there for other interesting challenges.
+
 In the realm of the familiar, where logic gates are the silent sentinels of truth, lies a challenge shrouded in enigma. "Familiar Strangers" beckons you to a world where the simplest of circuits hide secrets just beyond the veil of obviousness. These circuits, reminiscent of the ones you've met countless times, now hold a mystery that only a true Circom savant can unravel. Two levels, each a step deeper into the cryptic dance of numbers and logic, await your prowess. Are you ready to discover the true inputs and reveal the concealed answers within? Find the key, communicate with our judge service, and claim your place among the elite who see beyond the familiar to the truth that lies beneath.
 
 ## How to play?
